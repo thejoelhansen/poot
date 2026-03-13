@@ -2,5 +2,7 @@
 
 # Dispatch to core/dispatch
 
-def dispatch()
-  # TODO
+def dispatch():
+    print("Hello World")
+
+dispatch()
