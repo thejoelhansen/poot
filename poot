@@ -1,8 +1,0 @@
-#!/usr/bin/env python3
-
-# Dispatch to core/dispatch
-
-def dispatch():
-    print("Hello World")
-
-dispatch()

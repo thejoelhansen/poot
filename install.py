@@ -61,7 +61,7 @@ def copy_file(source_file, destination_folder):
         shutil.copy(file, destination_folder)
 
 ## Copy executable
-copy_file("./poot", "/usr/local/bin/")
+copy_file("./poot.py", "/usr/local/bin/poot")
 ## Copy core files
 copy_file("./core/*", "/usr/local/lib/poot/core/")
 copy_file("./readme.MD", "/usr/local/lib/poot/")
