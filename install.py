@@ -2,7 +2,7 @@
 
 
 # --- Main !TODO 
-## Make non sudo install path into user's home directory: Updating all paths to install $HOME/.poot/ if ran without sudo (IE python3 install.py)
+# Make non sudo install path into user's home directory: Updating all paths to install $HOME/.poot/ if ran without sudo (IE python3 install.py)
 
 
 # Library imports
@@ -15,7 +15,7 @@ from pathlib import Path
 # Check if Python version > 3.9
 def check_python_version(min_version=(3, 9)):
 
-    ## Get Python version string
+    # Get Python version string
     version_string = subprocess.run(
         ["python3", "--version"], 
         check=True, 
@@ -23,12 +23,12 @@ def check_python_version(min_version=(3, 9)):
         text=True
     )
 
-    ## Convert version string to number
+    # Convert version string to number
     version_list = version_string.stdout.split()[1]
     version_tuple_string = tuple(version_list.split("."))
     version_number = tuple(map(int, version_tuple_string))
     
-    ## Compare current installed version with minimum version 
+    # Compare current installed version with minimum version 
     version_is_greater = version_number >= min_version
  
     return version_is_greater
@@ -60,9 +60,9 @@ def copy_file(source_file, destination_folder):
         print(f"[poot] Copying {file}")
         shutil.copy(file, destination_folder)
 
-## Copy executable
+# Copy executable
 copy_file("./poot.py", "/usr/local/bin/poot")
-## Copy core files
+# Copy core files
 copy_file("./core/*", "/usr/local/lib/poot/core/")
 copy_file("./readme.MD", "/usr/local/lib/poot/")
 copy_file("./install.py", "/usr/local/lib/poot/")
@@ -70,7 +70,7 @@ copy_file("./modules/*", "/usr/local/lib/poot/modules/")
 
 # Verify install
 
-## Collection missing files
+# Collection missing files
 missing = []
 
 # !TODO Update with full install requirements
@@ -83,12 +83,12 @@ required_files = [
     "/usr/local/lib/poot/install.py"
 ]
 
-## Check if required files exist, appending the missing files to missing[]
+# Check if required files exist, appending the missing files to missing[]
 for path in required_files:
     if not Path(path).exists():
         missing.append(path)
 
-## See if anything was added to missing[]
+# See if anything was added to missing[]
 if missing:
     print("[poot] Failed to install:")
     for file in missing:
