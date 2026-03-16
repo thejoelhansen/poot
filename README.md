@@ -1,5 +1,5 @@
-# poot
-Programmable Operations Orchestration Tool
+# pot
+Programmable Operations Tool
 
 # General Use
 
@@ -7,9 +7,9 @@ Programmable Operations Orchestration Tool
 
 # Core Modules
 
-Default "core" modules are provided in the install package under ./modules. These are installed by default to /usr/local/lib/poot/modules and available if poot was installed globally. 
+Default "core" modules are provided in the install package under ./modules. These are installed by default to /usr/local/lib/pot/modules and available if poot was installed globally. 
 
-If poot should be installed local to the user, IE ~/.poot, then these core modules are installed by default to ~/.poot/modules. 
+If pot should be installed local to the user, IE ~/.pot, then these core modules are installed by default to ~/.pot/modules. 
 
 # Installation
 
