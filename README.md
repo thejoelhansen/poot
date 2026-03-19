@@ -25,5 +25,8 @@ python3 install.py
 ```
 
 Note: The installer will ask. 
+Note: The dedault app name is 'pot'. If you'd like to change this you'll need to update two things:
+- config.ini > app_name = "new-app-name"
+- mv pot.py new-app-name
 
 # Updating

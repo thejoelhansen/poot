@@ -2,15 +2,24 @@
 
 
 # --- Main !TODO 
-# Make non sudo install path into user's home directory: Updating all paths to install $HOME/.poot/ if ran without sudo (IE python3 install.py)
+# Make non sudo install path into user's home directory: Updating all paths to install $HOME/.app_name/ if ran without sudo (IE python3 install.py)
 
 
 # Library imports
-
+import sys
 import subprocess
 import shutil
 import glob
 from pathlib import Path
+import configparser
+
+# App name
+# Load config
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+# Get app name from config
+app_name = config.get("APP", "app_name")
 
 # Check if Python version > 3.9
 def check_python_version(min_version=(3, 9)):
@@ -38,35 +47,35 @@ if __name__ == "__main__":
     version_check = check_python_version()
     
     if version_check == True:
-        print("[poot] Success! Python minimum version is at least 3.9")
+        print(f"[{app_name}] Success! Python minimum version is at least 3.9")
     else:
-        print("[poot] Exiting installation: Python must be at least 3.9")
+        print(f"[{app_name}] Exiting installation: Python must be at least 3.9")
         exit(1)
 
 # Create folders
 def create_dirs(dir_list):
     for directory in dir_list:
-        print(f"[poot] Creating {directory}")
+        print(f"[{app_name}] Creating {directory}")
         subprocess.run(["mkdir", "-p", directory], check=True)
 
 create_dirs([
-    "/usr/local/lib/poot/core",
-    "/usr/local/lib/poot/modules"
+    f"/usr/local/lib/{app_name}/runners",
+    f"/usr/local/lib/{app_name}/commands"
 ])
 
 # Copy files to default global install directory
 def copy_file(source_file, destination_folder):
     for file in glob.glob(source_file): 
-        print(f"[poot] Copying {file}")
+        print(f"[{app_name}] Copying {file}")
         shutil.copy(file, destination_folder)
 
 # Copy executable
-copy_file("./poot.py", "/usr/local/bin/poot")
+copy_file(f"./{app_name}.py", f"/usr/local/bin/{app_name}")
 # Copy core files
-copy_file("./core/*", "/usr/local/lib/poot/core/")
-copy_file("./readme.MD", "/usr/local/lib/poot/")
-copy_file("./install.py", "/usr/local/lib/poot/")
-copy_file("./modules/*", "/usr/local/lib/poot/modules/")
+copy_file("./runners/*", f"/usr/local/lib/{app_name}/runners/")
+copy_file("./README.md", f"/usr/local/lib/{app_name}/")
+copy_file("./install.py", f"/usr/local/lib/{app_name}/")
+copy_file("./commands/*", f"/usr/local/lib/{app_name}/commands/")
 
 # Verify install
 
@@ -76,11 +85,10 @@ missing = []
 # !TODO Update with full install requirements
 
 required_files = [
-    "/usr/local/bin/poot",
-    "/usr/local/lib/poot/core/dispatch.py",
-    "/usr/local/lib/poot/core/run.py",
-    "/usr/local/lib/poot/modules",
-    "/usr/local/lib/poot/install.py"
+    f"/usr/local/bin/{app_name}",
+    f"/usr/local/lib/{app_name}/runners/run_shell.py",
+    f"/usr/local/lib/{app_name}/commands",
+    f"/usr/local/lib/{app_name}/install.py"
 ]
 
 # Check if required files exist, appending the missing files to missing[]
@@ -90,7 +98,7 @@ for path in required_files:
 
 # See if anything was added to missing[]
 if missing:
-    print("[poot] Failed to install:")
+    print(f"[{app_name}] Failed to install:")
     for file in missing:
         print(f"- {file}")
         print("Exiting installation:")
@@ -100,24 +108,24 @@ if missing:
 
 try:
     subprocess.run(
-        ["chmod", "755", "/usr/local/bin/poot"], 
+        ["chmod", "755", f"/usr/local/bin/{app_name}"], 
         check=True
     )
 except subprocess.CalledProcessError as error:
-    print(f"[poot] Failed to set permissions: {error}")
+    print(f"[{app_name}] Failed to set permissions: {error}")
     sys.exit(1)  # exit installer
 
-# Verify poot resolves within user's PATH
+# Verify app_name resolves within user's PATH
 
-poot_path = shutil.which("poot")
+app_path = shutil.which(app_name)
 
-if poot_path:
-    print(f"[poot] Poot found at {poot_path}")
-    print("[poot] Installation success!")
+if app_path:
+    print(f"[{app_name}] {app_name} found at {app_path}")
+    print(f"[{app_name}] Installation success!")
     exit(0)
 else:
-    print(f"[poot] Poot not found: {poot_path}")
-    print("[poot] Exiting installation:")
+    print(f"[{app_name}] {app_name} not found: {app_path}")
+    print(f"[{app_name}] Exiting installation:")
     exit(1)
 
 

@@ -2,3 +2,6 @@ debug
 
 # Local modules and core override
 .poot
+
+# Localized config
+config.ini
