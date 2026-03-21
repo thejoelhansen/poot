@@ -7,7 +7,6 @@ import glob
 import importlib.util
 import sys
 import configparser
-#from runners.run_shell import run_shell
 
 # App name
 # Load config
@@ -75,7 +74,7 @@ def gather_modules():
     # Required core modules to ensure base app functionality
     # TODO make into variable defined in config.ini for easy customization
     required_runners = [
-        "run_shell"
+        "shell"
     ]
 
     required_commands = [
@@ -86,15 +85,71 @@ def gather_modules():
 
     return runners, commands
     
-# Run dispatch, catching missing file errors
+# Gather modules
 try: 
     runners, commands = gather_modules()
     # DEBUG
-    print(f"Found runners: {runners}, Found commands: {commands}")
+    ## print(f"Found runners: {runners}, Found commands: {commands}")
 except FileNotFoundError as error:
     print(error)
     exit(1)
 
+# Import found modules
+def import_modules(modules, namespace):
+    # Empty dict to track loaded modules
+    loaded = {}
+    
+    for module, path in modules.items():
+        if module == "__init__":
+            continue
+      
+        # Construct module path 
+        module_path = Path(path) / f"{module}.py"
+        module_name = f"{namespace}.{module}"
+
+        # Skip import if module already loaded
+        if module in sys.modules:
+            loaded[module] = sys.modules[module_name]
+            continue
+
+        # Create blueprint for module from runner name & modified module_path
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        import_module = importlib.util.module_from_spec(spec)
+       
+        # Import module
+        sys.modules[module_name] = import_module
+        spec.loader.exec_module(import_module)
+
+        # Add imported module to loaded{}
+        loaded[module] = import_module
+
+    return loaded
+
+# Import modules
+imported_runners = import_modules(runners, "runners")
+imported_commands = import_modules(commands, "commands")
+# DEBUG
+## print(imported_runners, imported_commands)
+
+# Alias all runners and commands
+## Runner functions are now shell.run() and Command dicts are now ping.cmd[]
+for imported_modules in (imported_runners, imported_commands):
+    for name, module in imported_modules.items():
+        globals()[name] = module
+
+# TODO 1 - NOT HERE - Go flesh out run_shell.py runner, taking (cmd), expanding it, and pumping it through run.subprocess
+
+# TODO 2 Parse user input
+
+# def parse_command():
+
+# TODO 3 Run provided command through specified runner
+ 
+# def run_command():
+
+
+# !! TODO currently hardcoded
 
 cmd = "haai"
-#run_shell(cmd)
+shell.run(cmd)
+print(ping.command)

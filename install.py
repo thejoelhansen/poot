@@ -82,11 +82,11 @@ copy_file("./commands/*", f"/usr/local/lib/{app_name}/commands/")
 # Collection missing files
 missing = []
 
-# !TODO Update with full install requirements
+# TODO add required runners & commands to config for customizable install requirements
 
 required_files = [
     f"/usr/local/bin/{app_name}",
-    f"/usr/local/lib/{app_name}/runners/run_shell.py",
+    f"/usr/local/lib/{app_name}/runners/shell.py",
     f"/usr/local/lib/{app_name}/commands",
     f"/usr/local/lib/{app_name}/install.py"
 ]
