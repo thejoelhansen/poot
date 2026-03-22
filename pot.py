@@ -16,6 +16,9 @@ config.read("config.ini")
 # Get app name from config
 app_name = config.get("APP", "app_name")
 
+# Help Text
+help_text = f"{app_name}: Help text"
+
 # Gather all core & custom runners & commands
 
 def gather_modules():
@@ -138,18 +141,63 @@ for imported_modules in (imported_runners, imported_commands):
         globals()[name] = module
 
 # TODO 1 - NOT HERE - Go flesh out run_shell.py runner, taking (cmd), expanding it, and pumping it through run.subprocess
+## basic subprocess.run is there - need to handle user input variables within individual commands, EG pot ping <server>
 
-# TODO 2 Parse user input
+# TODO 2 Parse user input... this might be all in teh runner, but probably better to parse for --help here
 
-# def parse_command():
+# DEBUG
+# imported_command = {
+#     "name":"ping-server",
+#     "body":"ping -c 1 1.1.1.1",
+#     "help":"Help text for help with using this command", 
+#     "runner":"shell"
+# }
 
+
+
+def parse_command(user_commands, imported_commands):
+ 
+    if # !! TODO WHERE I LEFT OFF base if to catch if very first sys.argv[1] is a variant of help_flags (which I should move up in scope) to throw base help_text var (top of pot.py)
+    
+    # Split user's commands into individual tokens within a list
+    for i in range(len(user_commands), 0, -1):
+        candidate = " ".join(user_commands[:i])
+        
+        if candidate in imported_commands:
+            command = imported_commands[candidate].command
+            user_args = user_commands[i:]
+
+        # Check for presence of help flag
+            help_flags = ["help", "-help", "--help", "-h"]
+            for flag in help_flags:
+                if flag in user_args:
+                    print(command["help"])
+                    exit(0)
+        
+        # print(f"{command} = {candidate}"); exit()
+            return user_command, user_args 
+    
+    return None, []
+
+    # output: return target_command_name, target_command_body # command_body parsed with $args in a list probably
+
+user_commands = ['ping', '-c', '1', 'servername', '--help']
+# Get user's commands after app (pot)
+# user_commands = sys.argv[1:]
+
+try: 
+    user_command, user_args = parse_command(user_commands, imported_commands)
+    # DEBUG
+    print(f"Parse Output: {user_command} & {user_args}")
+except FileNotFoundError as error:
+    print(error)
+    exit(1)
+exit()
 # TODO 3 Run provided command through specified runner
  
-# def run_command():
-
 
 # !! TODO currently hardcoded
 
-cmd = "haai"
 shell.run(cmd)
+
 print(ping.command)
