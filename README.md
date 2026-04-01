@@ -3,6 +3,11 @@ Programmable Operations Tool
 
 # General Use
 
+# TODO
+- add dryrun flag
+- add argument type
+- move required runners, commands, files into config
+
 # Modules
 
 # Core Modules

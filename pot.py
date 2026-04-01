@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+# --- Basic Structure
+# 1 Import standard libraries & local config
+# 2 Scan install directories for runner & command modules
+# 3 Import modules as libraries and alias them
+# 4 Parse user input command and execute through specified runner
+# 5 !! TODO Hook command output to 'Output' module for notification (slack, teams, discord)
+
 # Import libraries
 
 from pathlib import Path
@@ -7,6 +14,7 @@ import glob
 import importlib.util
 import sys
 import configparser
+import re
 
 # App name
 # Load config
@@ -16,12 +24,9 @@ config.read("config.ini")
 # Get app name from config
 app_name = config.get("APP", "app_name")
 
-# Help Text
-help_text = f"{app_name}: Help text"
+# Load all corem, custom runners & commands
 
-# Gather all core & custom runners & commands
-
-def gather_modules():
+def load_modules():
 
     # Compare libraries found against a list of required library files
     def file_check(required_files, found_files):
@@ -51,6 +56,10 @@ def gather_modules():
         if core_path.exists(): 
             # Update core library dict with files as they are found
             for runner_path in core_path.glob('*.py'):
+                # Skip __init__ module file
+                if runner_path.stem == "__init__":
+                    continue
+                
                 runners[runner_path.stem] = str(core_path)
 
     # ----- Locate core modules directory
@@ -70,9 +79,37 @@ def gather_modules():
         if core_path.exists(): 
             # Update core module dict with files as they are found
             for command_path in core_path.glob('*.py'):
-                commands[command_path.stem] = str(core_path)
 
-    # Check found libraries and modules against required files
+                # Build module.command for each module found in /commands/*
+                module_name = f"commands.{command_path.stem}"
+                spec = importlib.util.spec_from_file_location(module_name, command_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                # Skip files without `commands`
+                if not hasattr(module, "commands"):
+                    continue
+
+                # Required command keys (fields) 
+                required_keys = {"body", "runner", "help"}
+               
+                # Merge commands from file
+                for command_name, command_def in module.commands.items():
+                    if not required_keys.issubset(command_def):
+                        print(f"Skipping invalid command: {command_name} in {command_path}")
+                        continue
+                  
+                    # Set non-essential keys if missing
+                    if "arguments" not in command_def:
+                        command_def["arguments"] = ""
+                    if "usage" not in command_def:
+                        command_def["usage"] = ""
+
+                    # Assign command definition and source location (for use in --help) 
+                    commands[command_name] = {
+                        **command_def,
+                        "_source": str(command_path)
+                    }
 
     # Required core modules to ensure base app functionality
     # TODO make into variable defined in config.ini for easy customization
@@ -90,114 +127,152 @@ def gather_modules():
     
 # Gather modules
 try: 
-    runners, commands = gather_modules()
-    # DEBUG
-    ## print(f"Found runners: {runners}, Found commands: {commands}")
+    runners, commands = load_modules()
+    # print(f"DEBUG Found runners: {runners}, Found commands: {commands}") # DEBUG
 except FileNotFoundError as error:
     print(error)
     exit(1)
 
-# Import found modules
-def import_modules(modules, namespace):
-    # Empty dict to track loaded modules
-    loaded = {}
+# Assemble {app_name} Help Text
+
+# General header
+help_header = f"""
+{app_name}: CLI Command Wrapper
+
+Usage:
+  {app_name} <command> [args]
+
+Options:
+  -h, --help        Show this help message
+
+Commands:
+"""
+
+help_commands = ""
+
+# Assemble available Commands from imported_commands
+for name, cmd in commands.items():
+    desc = cmd.get("help", "")
+    usage = cmd.get("usage", "")
+    source = cmd.get("_source", "")
+
+    help_commands += f"  {name:<18}{desc}\n"
     
-    for module, path in modules.items():
-        if module == "__init__":
-            continue
-      
-        # Construct module path 
-        module_path = Path(path) / f"{module}.py"
-        module_name = f"{namespace}.{module}"
+    if usage:
+        for line in usage.split("\n"):
+            help_commands += f"  {'':<18}{line}\n"
 
-        # Skip import if module already loaded
-        if module in sys.modules:
-            loaded[module] = sys.modules[module_name]
-            continue
+    help_commands += f"  {'':<18}({source})\n"
 
-        # Create blueprint for module from runner name & modified module_path
-        spec = importlib.util.spec_from_file_location(module_name, module_path)
-        import_module = importlib.util.module_from_spec(spec)
-       
-        # Import module
-        sys.modules[module_name] = import_module
-        spec.loader.exec_module(import_module)
+# Combine header & imported_commands
+help_text = help_header + help_commands
 
-        # Add imported module to loaded{}
-        loaded[module] = import_module
+# TODO Parser... add support for typed arguments {arg1:int} or {arg2:str} for faster failing & safer input handling (arg = ; rm -rf ... yikes)
 
-    return loaded
+def parse_input(user_arg, commands):
 
-# Import modules
-imported_runners = import_modules(runners, "runners")
-imported_commands = import_modules(commands, "commands")
-# DEBUG
-## print(imported_runners, imported_commands)
+    # Define app & command help flags
+    help_flags = ["help", "-help", "--help", "-h"]
 
-# Alias all runners and commands
-## Runner functions are now shell.run() and Command dicts are now ping.cmd[]
-for imported_modules in (imported_runners, imported_commands):
-    for name, module in imported_modules.items():
-        globals()[name] = module
+    # Return app help text 
+    if not user_arg or user_arg[0] in help_flags:
+        print(help_text)
+        exit(0)
 
-# TODO 1 - NOT HERE - Go flesh out run_shell.py runner, taking (cmd), expanding it, and pumping it through run.subprocess
-## basic subprocess.run is there - need to handle user input variables within individual commands, EG pot ping <server>
+    input_str = " ".join(user_arg)
 
-# TODO 2 Parse user input... this might be all in teh runner, but probably better to parse for --help here
+    arg_names = []
 
-# DEBUG
-# imported_command = {
-#     "name":"ping-server",
-#     "body":"ping -c 1 1.1.1.1",
-#     "help":"Help text for help with using this command", 
-#     "runner":"shell"
-# }
-
-
-
-def parse_command(user_commands, imported_commands):
- 
-    if # !! TODO WHERE I LEFT OFF base if to catch if very first sys.argv[1] is a variant of help_flags (which I should move up in scope) to throw base help_text var (top of pot.py)
-    
-    # Split user's commands into individual tokens within a list
-    for i in range(len(user_commands), 0, -1):
-        candidate = " ".join(user_commands[:i])
+    # Split user's commands into individual tokens (candidate) within a list
+    for i in range(len(user_arg), 0, -1):
+        candidate = " ".join(user_arg[:i])
         
-        if candidate in imported_commands:
-            command = imported_commands[candidate].command
-            user_args = user_commands[i:]
+        print("DEBUG: Checking candidate:", repr(candidate)) # DEBUG
 
-        # Check for presence of help flag
-            help_flags = ["help", "-help", "--help", "-h"]
-            for flag in help_flags:
-                if flag in user_args:
-                    print(command["help"])
-                    exit(0)
-        
-        # print(f"{command} = {candidate}"); exit()
-            return user_command, user_args 
-    
+        # Try first exact match
+        if candidate in commands:
+            cmd = commands[candidate]
+            args = user_arg[i:]
+
+            # Return command help text
+            if any(flag in args for flag in help_flags):
+                print(cmd.get("help", "No help available."))
+                exit(0)
+
+            print("DEBUG: Matched command:", candidate) # DEBUG
+
+            # Extract arg names from "name"
+            arg_names = re.findall(r"{(\w+)}", cmd.get("arguments", ""))
+
+            # 🔥 Map args → arg names
+            arg_map = {}
+            for idx, arg_name in enumerate(arg_names):
+                if idx < len(args):
+                    arg_map[arg_name] = args[idx]
+                else:
+                    print(f"Missing argument: {arg_name}")
+                    exit(1)
+
+            # 🔥 Format body
+            try:
+                formatted_body = cmd["body"].format(**arg_map)
+            except KeyError as e:
+                print(f"Argument mismatch: {e}")
+                exit(1)
+
+            cmd["parsed_body"] = formatted_body
+
+            return cmd, args
+
+    # Catch partially missing commands
+    base_input = " ".join([arg for arg in user_arg if arg not in help_flags])
+
+    partial_matches = [
+        name for name in commands
+        if name.startswith(base_input)
+    ]
+
+    # Print command help text
+    if partial_matches:
+        print("Available subcommands:\n")
+        for name in partial_matches:
+            desc = commands[name].get("help", "")
+            print(f"  {name:<18}{desc}")
+        exit(0)
+
     return None, []
 
-    # output: return target_command_name, target_command_body # command_body parsed with $args in a list probably
-
-user_commands = ['ping', '-c', '1', 'servername', '--help']
 # Get user's commands after app (pot)
-# user_commands = sys.argv[1:]
+user_arg = sys.argv[1:]
 
 try: 
-    user_command, user_args = parse_command(user_commands, imported_commands)
+    parsed_command, parsed_arg = parse_input(user_arg, commands)
+    
+    if parsed_command is None:
+        print(f"Unknown command: {' '.join(user_arg)}\n")
+        print("Available commands:\n")
+        for name in commands:
+            print(f"    {name:<18}{desc}")
+        exit(1)
+
     # DEBUG
-    print(f"Parse Output: {user_command} & {user_args}")
+    # print(parsed_command, parsed_arg); exit()
 except FileNotFoundError as error:
     print(error)
     exit(1)
-exit()
-# TODO 3 Run provided command through specified runner
- 
 
-# !! TODO currently hardcoded
+# Load runner module 
+runner_name = parsed_command["runner"]
 
-shell.run(cmd)
+if runner_name not in runners:
+    print(f"Runner '{runner_name}' not found")
+    exit(1)
 
-print(ping.command)
+runner_path = Path(runners[runner_name]) / f"{runner_name}.py"
+
+spec = importlib.util.spec_from_file_location(f"runners.{runner_name}", runner_path)
+runner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runner)
+
+# Run command
+runner.run(parsed_command)
